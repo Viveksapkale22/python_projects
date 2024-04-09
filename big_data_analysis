@@ -1,0 +1,121 @@
+import tkinter as tk
+from tkinter import filedialog, messagebox
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from pandas.api.types import is_numeric_dtype
+
+class CSVViewerApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("CSV Viewer")
+
+        self.open_button = tk.Button(self.root, text="Open CSV File", command=self.open_file)
+        self.open_button.pack(pady=10)
+
+        self.show_button = tk.Button(self.root, text="Show Original Data", command=self.show_data)
+        self.show_button.pack(pady=5)
+
+        self.filter_button = tk.Button(self.root, text="Filter Data", command=self.filter_data)
+        self.filter_button.pack(pady=5)
+
+        self.condition_label = tk.Label(self.root, text="Enter Filter Condition: (ex. age <= 18)")
+        self.condition_label.pack()
+
+        self.condition_entry = tk.Entry(self.root)
+        self.condition_entry.pack()
+
+        self.filter_button_with_condition = tk.Button(self.root, text="Apply Condition", command=self.apply_condition)
+        self.filter_button_with_condition.pack(pady=5)
+
+        self.file_path_label = tk.Label(self.root, text="")
+        self.file_path_label.pack()
+
+        self.analysis_label = tk.Label(self.root, text="Analysis:")
+        self.analysis_label.pack()
+
+        self.analysis_entry = tk.Entry(self.root)
+        self.analysis_entry.pack()
+
+        self.plot_type_label = tk.Label(self.root, text="Select Plot Type:")
+        self.plot_type_label.pack()
+
+        self.plot_type_var = tk.StringVar()
+        self.plot_type_var.set("histogram")  # Default plot type
+        self.plot_type_dropdown = tk.OptionMenu(self.root, self.plot_type_var, "histogram", "scatter")
+        self.plot_type_dropdown.pack(pady=5)
+
+        self.analysis_button = tk.Button(self.root, text="Generate Graph", command=self.generate_graph)
+        self.analysis_button.pack(pady=5)
+
+        self.plot_canvas = None
+
+    def open_file(self):
+        self.file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+        if self.file_path:
+            self.file_path_label.config(text=f"Selected CSV File: {self.file_path}")
+            self.df = pd.read_csv(self.file_path)
+
+    def show_data(self):
+        if hasattr(self, 'df'):
+            print("Original Data:")
+            print(self.df)
+        else:
+            print("No CSV file opened yet.")
+
+    def filter_data(self):
+        if hasattr(self, 'df'):
+            df_filtered = self.df.dropna()
+            print("\nFiltered Data:")
+            print(df_filtered)
+        else:
+            print("No CSV file opened yet.")
+
+    def apply_condition(self):
+        if hasattr(self, 'df'):
+            condition = self.condition_entry.get()
+            if condition:
+                try:
+                    df_filtered = self.df.query(condition)
+                    print("\nFiltered Data with Condition:")
+                    print(df_filtered)
+                except Exception as e:
+                    print(f"An error occurred: {e}")
+            else:
+                print("Please enter a condition.")
+        else:
+            print("No CSV file opened yet.")
+
+    def generate_graph(self):
+        if hasattr(self, 'df'):
+            column_name = self.analysis_entry.get()
+            plot_type = self.plot_type_var.get()
+            if column_name:
+                if column_name in self.df.columns:
+                    if is_numeric_dtype(self.df[column_name]):
+                        plt.clf()  # Clear previous plot
+                        if plot_type == "histogram":
+                            plt.hist(self.df[column_name])
+                        elif plot_type == "scatter":
+                            plt.scatter(self.df.index, self.df[column_name])
+                            plt.xlabel("Index")
+                        plt.title(f'{plot_type.capitalize()} of {column_name}')
+                        plt.ylabel('Frequency' if plot_type == "histogram" else column_name)
+                        if self.plot_canvas:
+                            self.plot_canvas.get_tk_widget().pack_forget()  # Remove previous plot canvas
+                        self.plot_canvas = FigureCanvasTkAgg(plt.gcf(), master=self.root)
+                        self.plot_canvas.draw()
+                        self.plot_canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+                    else:
+                        messagebox.showerror("Error", "Selected column is not numeric.")
+                else:
+                    messagebox.showerror("Error", "Selected column does not exist.")
+            else:
+                messagebox.showerror("Error", "Please enter a column name.")
+        else:
+            messagebox.showerror("Error", "No CSV file opened yet.")
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = CSVViewerApp(root)
+    root.mainloop()
