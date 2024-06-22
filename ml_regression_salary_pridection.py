@@ -23,3 +23,6 @@ print(100-(100*error),"% of the accuracy of the salary prediction ml model")
 print(x_test)
 print("this is the prediction values above table : ",model.predict(x_test))
 
+print("********************************let pridict your salary in the base of data give by*********************************")
+val = input("Enter the Experience Years : ")
+model.predict([[float(val)]])
